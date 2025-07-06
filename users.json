@@ -1,0 +1,10 @@
+{
+  "john.doe@example.com": {
+    "fullname": "John Doe",
+    "email": "john.doe@example.com",
+    "phone": "+254712345678",
+    "country": "Kenya",
+    "idcard": "12345678",
+    "password": "john1234"
+  }
+}
