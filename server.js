@@ -84,6 +84,27 @@ app.post('/api/signin', (req, res) => {
 
     res.json({ success: true, message: 'Login successful', user });
 });
+// 🔒 View all registered users (admin access)
+app.get('/api/admin/users', (req, res) => {
+    const { key } = req.query;
+
+    // Optional security key check
+    if (key !== '12345adminkey') {
+        return res.status(403).json({ success: false, message: 'Access denied' });
+    }
+
+    // Send only safe user data (no passwords!)
+    const safeUsers = Object.values(usersCache).map(user => ({
+        fullname: user.fullname,
+        email: user.email,
+        phone: user.phone,
+        country: user.country,
+        idcard: user.idcard
+    }));
+
+    res.json({ success: true, users: safeUsers });
+});
+
 
 // 📊 Get Progress
 app.get('/api/progress/:email', (req, res) => {
