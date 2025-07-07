@@ -12,7 +12,7 @@ app.use(express.json());
 
 const USERS_FILE = path.join(__dirname, 'users.json');
 const PROGRESS_FILE = path.join(__dirname, 'progress.json');
-
+const ALLOWED_CODES = ['africa2025', 'adminKEY789', 'wizFranky2025'];
 // In-memory cache
 let usersCache = {};
 let progressCache = {};
