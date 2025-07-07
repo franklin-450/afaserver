@@ -12,6 +12,8 @@ app.use(express.json());
 
 const USERS_FILE = path.join(__dirname, 'users.json');
 const PROGRESS_FILE = path.join(__dirname, 'progress.json');
+const BLOCK_FILE = path.join(__dirname, 'blocked_ips.json');
+
 // In-memory cache
 let usersCache = {};
 let progressCache = {};
