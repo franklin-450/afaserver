@@ -149,6 +149,8 @@ app.delete('/api/admin/users/:email', (req, res) => {
 
   res.json({ success: true, message: 'Student deleted successfully' });
 });
+const ALLOWED_CODES = ['africa2025', 'adminKEY789', 'wizFranky2025']; // or from .env
+
 app.post('/api/verify-admin', async (req, res) => {
   const ip = req.headers['x-forwarded-for'] || req.socket.remoteAddress;
   const { code } = req.body;
@@ -161,7 +163,7 @@ app.post('/api/verify-admin', async (req, res) => {
     return res.status(403).send('Access denied. You are blocked for 12 hours.');
   }
 
-  res.redirect('/admin-login.html');
+  return res.status(200).send('Verified'); // ✅ Must respond with success for frontend
 });
 
 
