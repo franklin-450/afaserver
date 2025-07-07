@@ -1,55 +1,83 @@
-// server.js
+// server.js (Autosave Enhanced)
 const express = require('express');
 const cors = require('cors');
-const bodyParser = require('body-parser');
-const fs = require('fs');
+const fs = require('fs/promises');
+const path = require('path');
+
 const app = express();
 const PORT = 4000;
 
 app.use(cors());
-app.use(bodyParser.json());
+app.use(express.json());
 
-const USERS_FILE = 'users.json';
-const PROGRESS_FILE = 'progress.json';
+const USERS_FILE = path.join(__dirname, 'users.json');
+const PROGRESS_FILE = path.join(__dirname, 'progress.json');
 
-// Helper functions
-const readJSON = (file) => JSON.parse(fs.existsSync(file) ? fs.readFileSync(file) : '{}');
-const writeJSON = (file, data) => fs.writeFileSync(file, JSON.stringify(data, null, 2));
+// In-memory cache
+let usersCache = {};
+let progressCache = {};
+let dirtyUsers = false;
+let dirtyProgress = false;
 
-// Sign Up
-app.post('/api/signup', (req, res) => {
+// Load from file if exists
+const loadFile = async (file) => {
+    try {
+        const data = await fs.readFile(file, 'utf8');
+        return data ? JSON.parse(data) : {};
+    } catch {
+        return {};
+    }
+};
+
+// Save to file
+const saveFile = async (file, data) => {
+    try {
+        await fs.writeFile(file, JSON.stringify(data, null, 2));
+    } catch (err) {
+        console.error(`Error saving ${file}:`, err);
+    }
+};
+
+// Initial load
+(async () => {
+    usersCache = await loadFile(USERS_FILE);
+    progressCache = await loadFile(PROGRESS_FILE);
+})();
+
+// 🚨 Autosave every 5 seconds
+setInterval(() => {
+    if (dirtyUsers) {
+        saveFile(USERS_FILE, usersCache);
+        dirtyUsers = false;
+    }
+    if (dirtyProgress) {
+        saveFile(PROGRESS_FILE, progressCache);
+        dirtyProgress = false;
+    }
+}, 5000);
+
+// 🔐 Sign-Up
+app.post('/api/signup', async (req, res) => {
     const { fullname, email, phone, country, idcard, password } = req.body;
-    const users = readJSON(USERS_FILE);
 
-    if (users[email]) {
+    if (usersCache[email]) {
         return res.json({ success: false, message: 'Email already registered' });
     }
 
-    users[email] = {
-        fullname,
-        email,
-        phone,
-        country,
-        idcard,
-        password
-    };
+    usersCache[email] = { fullname, email, phone, country, idcard, password };
+    progressCache[email] = { word: 0, excel: 0, ppt: 0 };
 
-    writeJSON(USERS_FILE, users);
-
-    // Initialize progress
-    const progress = readJSON(PROGRESS_FILE);
-    progress[email] = { word: 0, excel: 0, ppt: 0 };
-    writeJSON(PROGRESS_FILE, progress);
+    dirtyUsers = true;
+    dirtyProgress = true;
 
     res.json({ success: true, message: 'Registration successful' });
 });
 
-// Login
+// 🔓 Login
 app.post('/api/signin', (req, res) => {
     const { email, password } = req.body;
-    const users = readJSON(USERS_FILE);
+    const user = usersCache[email];
 
-    const user = users[email];
     if (!user || user.password !== password) {
         return res.json({ success: false, message: 'Invalid credentials' });
     }
@@ -57,38 +85,37 @@ app.post('/api/signin', (req, res) => {
     res.json({ success: true, message: 'Login successful', user });
 });
 
-// Get Progress
+// 📊 Get Progress
 app.get('/api/progress/:email', (req, res) => {
     const { email } = req.params;
-    const progress = readJSON(PROGRESS_FILE);
 
-    if (!progress[email]) {
-        return res.status(404).json({ error: 'Progress not found for this user' });
+    if (!progressCache[email]) {
+        return res.status(404).json({ error: 'Progress not found' });
     }
 
-    res.json(progress[email]);
+    res.json(progressCache[email]);
 });
 
-// Update Progress (Optional route)
+// 🔁 Update Progress
 app.post('/api/progress/:email', (req, res) => {
     const { email } = req.params;
     const { word, excel, ppt } = req.body;
-    const progress = readJSON(PROGRESS_FILE);
 
-    if (!progress[email]) {
-        progress[email] = { word: 0, excel: 0, ppt: 0 };
+    if (!progressCache[email]) {
+        progressCache[email] = { word: 0, excel: 0, ppt: 0 };
     }
 
-    progress[email] = {
-        word: word ?? progress[email].word,
-        excel: excel ?? progress[email].excel,
-        ppt: ppt ?? progress[email].ppt
+    progressCache[email] = {
+        word: word ?? progressCache[email].word,
+        excel: excel ?? progressCache[email].excel,
+        ppt: ppt ?? progressCache[email].ppt,
     };
 
-    writeJSON(PROGRESS_FILE, progress);
+    dirtyProgress = true;
+
     res.json({ success: true, message: 'Progress updated' });
 });
 
 app.listen(PORT, () => {
-    console.log(`✅ Server running at http://localhost:${PORT}`);
+    console.log(`⚡ Super Fast Server with Autosave running at http://localhost:${PORT}`);
 });
