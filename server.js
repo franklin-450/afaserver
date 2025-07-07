@@ -16,6 +16,7 @@ const PROGRESS_FILE = path.join(__dirname, 'progress.json');
 // In-memory cache
 let usersCache = {};
 let progressCache = {};
+let blockedIPs = {};
 let dirtyUsers = false;
 let dirtyProgress = false;
 
@@ -43,6 +44,24 @@ const saveFile = async (file, data) => {
     usersCache = await loadFile(USERS_FILE);
     progressCache = await loadFile(PROGRESS_FILE);
 })();
+const loadBlocked = async () => {
+  blockedIPs = await loadFile(BLOCK_FILE);
+};
+
+const saveBlocked = async () => {
+  await saveFile(BLOCK_FILE, blockedIPs);
+};
+
+const isBlocked = (ip) => {
+  const block = blockedIPs[ip];
+  return block && new Date().getTime() < block;
+};
+
+const blockIP = (ip) => {
+  blockedIPs[ip] = Date.now() + 12 * 60 * 60 * 1000; // 12 hours
+  saveBlocked();
+};
+
 
 // 🚨 Autosave every 5 seconds
 setInterval(() => {
@@ -130,6 +149,22 @@ app.delete('/api/admin/users/:email', (req, res) => {
 
   res.json({ success: true, message: 'Student deleted successfully' });
 });
+app.post('/api/verify-admin', async (req, res) => {
+  const ip = req.headers['x-forwarded-for'] || req.socket.remoteAddress;
+  const { code } = req.body;
+
+  if (isBlocked(ip)) return res.status(403).send('Access blocked for 12 hours.');
+
+  if (!ALLOWED_CODES.includes(code)) {
+    blockIP(ip);
+    await fs.appendFile('admin_denied.log', `${ip} denied at ${new Date().toISOString()}\n`);
+    return res.status(403).send('Access denied. You are blocked for 12 hours.');
+  }
+
+  res.redirect('/admin-login.html');
+});
+
+
 
 
 // 📊 Get Progress
