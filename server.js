@@ -72,6 +72,7 @@ app.post('/api/signup', async (req, res) => {
 
     res.json({ success: true, message: 'Registration successful' });
 });
+const ADMIN_KEY = '12345adminkey'
 
 // 🔓 Login
 app.post('/api/signin', (req, res) => {
@@ -103,6 +104,31 @@ app.get('/api/admin/users', (req, res) => {
     }));
 
     res.json({ success: true, users: safeUsers });
+});
+// ✅ DELETE Student by email
+app.delete('/api/admin/users/:email', (req, res) => {
+  const { email } = req.params;
+  const adminKey = req.query.key;
+
+  // Check the correct ADMIN_KEY
+  if (adminKey !== ADMIN_KEY) {
+    return res.status(403).json({ success: false, message: 'Unauthorized' });
+  }
+
+  // Check if the user exists
+  if (!usersCache[email]) {
+    return res.status(404).json({ success: false, message: 'User not found' });
+  }
+
+  // Delete from both caches
+  delete usersCache[email];
+  delete progressCache[email];
+
+  // Mark for autosave
+  dirtyUsers = true;
+  dirtyProgress = true;
+
+  res.json({ success: true, message: 'Student deleted successfully' });
 });
 
 
