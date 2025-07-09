@@ -3,16 +3,23 @@ const express = require('express');
 const cors = require('cors');
 const fs = require('fs/promises');
 const path = require('path');
+const http = require("http");
+const { Server } = require("socket.io");
 
 const app = express();
 const PORT = 4000;
+const server = http.createServer(app); // Replace any app.listen()
+const io = new Server(server);
 
 app.use(cors());
+app.use(express.static("public"));
 app.use(express.json());
 
 const USERS_FILE = path.join(__dirname, 'users.json');
 const PROGRESS_FILE = path.join(__dirname, 'progress.json');
 const BLOCK_FILE = path.join(__dirname, 'blocked_ips.json');
+const VISITS_FILE = "visits.json";
+if (!fs.existsSync(VISITS_FILE)) fs.writeFileSync(VISITS_FILE, "[]");
 
 // In-memory cache
 let usersCache = {};
@@ -199,6 +206,44 @@ app.post('/api/progress/:email', (req, res) => {
     dirtyProgress = true;
 
     res.json({ success: true, message: 'Progress updated' });
+});
+app.post("/api/track-visit", (req, res) => {
+  const visit = {
+    timestamp: new Date().toISOString(),
+    ip: req.ip,
+    userAgent: req.body.userAgent || "unknown",
+    platform: req.body.platform || "unknown",
+    screen: req.body.screen || "unknown",
+  };
+
+  const visits = JSON.parse(fs.readFileSync(VISITS_FILE));
+  visits.push(visit);
+  fs.writeFileSync(VISITS_FILE, JSON.stringify(visits, null, 2));
+
+  res.json({ message: "Visit logged" });
+});
+app.get("/api/stats", (req, res) => {
+  const visits = JSON.parse(fs.readFileSync(VISITS_FILE));
+  const today = new Date().toISOString().slice(0, 10);
+  const todayVisits = visits.filter(v => v.timestamp.startsWith(today));
+
+  res.json({
+    total: visits.length,
+    today: todayVisits.length,
+    online: onlineUsers,
+    recent: visits.slice(-10),
+  });
+});
+let onlineUsers = 0;
+
+io.on("connection", (socket) => {
+  onlineUsers++;
+  io.emit("userCount", onlineUsers);
+
+  socket.on("disconnect", () => {
+    onlineUsers--;
+    io.emit("userCount", onlineUsers);
+  });
 });
 
 app.listen(PORT, () => {
