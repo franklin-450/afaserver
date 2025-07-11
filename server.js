@@ -252,7 +252,7 @@ app.post("/api/ai", async (req, res) => {
 
   try {
     const chatResponse = await openai.chat.completions.create({
-      model: "gpt-4-turbo", // Or "gpt-3.5-turbo" if you're on free plan
+      model: "gpt-3.5-turbo", // Or "gpt-3.5-turbo" if you're on free plan
       messages: [
         { role: "system", content: "You are an AI assistant for Africa for Africa College." },
         { role: "user", content: message }
