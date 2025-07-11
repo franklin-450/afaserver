@@ -1,28 +1,27 @@
 {
-    "name": "training-progress-api",
-    "version": "1.0.0",
-    "description": "API for user registration and progress tracking",
-    "main": "server.js",
-    "scripts": {
-        "start": "node server.js"
-    },
-    "keywords": [
-        "express",
-        "training",
-        "users",
-        "progress",
-        "api"
-    ],
-    "author": "Wizard Franky",
-    "license": "MIT",
-    "dependencies": {
-        "body-parser": "^1.20.2",
-        "cors": "^2.8.5",
-        "express": "^4.18.2",
-        "socket.io": "^4.7.2"
-    },
-      "engines": {
-    "node": ">=14.0.0"
+  "name": "africa-college-server",
+  "version": "1.0.0",
+  "description": "Backend server for Africa For Africa College with AI support and user tracking",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "nodemon server.js"
+  },
+  "keywords": ["africa", "college", "node", "express", "ai", "openai", "socket.io"],
+  "author": "Wizard Franky",
+  "license": "MIT",
+  "dependencies": {
+    "cors": "^2.8.5",
+    "dotenv": "^16.3.1",
+    "express": "^4.18.2",
+    "fs-extra": "^11.2.0",
+    "openai": "^4.28.0",
+    "socket.io": "^4.7.2"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.3"
+  },
+  "engines": {
+    "node": ">=18.0.0"
   }
-
 }
