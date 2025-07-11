@@ -1,3 +1,4 @@
+require('dotenv').config(); // Make sure it's at the top
 const express = require('express');
 const cors = require('cors');
 const fs = require('fs'); // for sync like existsSync
@@ -14,6 +15,13 @@ const PORT = process.env.PORT || 4000;
 app.use(cors());
 app.use(express.static("public"));
 app.use(express.json());
+const { OpenAI } = require("openai");
+
+// Securely load your OpenAI API key from .env
+const openai = new OpenAI({
+  apiKey: process.env.OPENAI_API_KEY,
+});
+
 
 // Files
 const USERS_FILE = path.join(__dirname, 'users.json');
@@ -239,6 +247,27 @@ io.on('connection', (socket) => {
     io.emit('userCount', onlineUsers);
   });
 });
+app.post("/api/ai", async (req, res) => {
+  const { message } = req.body;
+
+  try {
+    const chatResponse = await openai.chat.completions.create({
+      model: "gpt-4-turbo", // Or "gpt-3.5-turbo" if you're on free plan
+      messages: [
+        { role: "system", content: "You are an AI assistant for Africa for Africa College." },
+        { role: "user", content: message }
+      ],
+    });
+
+    const reply = chatResponse.choices[0].message.content;
+    res.json({ success: true, reply });
+  } catch (err) {
+    console.error("AI Error:", err);
+    await fsp.appendFile("ai_logs.txt", `[${new Date().toISOString()}] ${message}\n`);
+    res.status(500).json({ success: false, error: "Failed to get response from AI" });
+  }
+});
+
 
 // START SERVER
 server.listen(PORT, () => {
